@@ -7,6 +7,7 @@ import * as $$$$$$1 from "./sections/Theme.tsx";
 import * as $$$$$$2 from "./sections/Footer.tsx";
 import * as $$$$$$3 from "./sections/SimpleTextList.tsx";
 import * as $$$$$$4 from "./sections/ParagraphList.tsx";
+import * as $$$$$$$$$0 from "./actions/roast.ts";
 import * as $$$$$$$$$$$0 from "./apps/decohub.ts";
 import * as $$$$$$$$$$$1 from "./apps/site.ts";
 
@@ -17,6 +18,9 @@ const manifest = {
     "deco-sites/roast/sections/ParagraphList.tsx": $$$$$$4,
     "deco-sites/roast/sections/SimpleTextList.tsx": $$$$$$3,
     "deco-sites/roast/sections/Theme.tsx": $$$$$$1,
+  },
+  "actions": {
+    "deco-sites/roast/actions/roast.ts": $$$$$$$$$0,
   },
   "apps": {
     "deco-sites/roast/apps/decohub.ts": $$$$$$$$$$$0,
