@@ -1,5 +1,5 @@
 import OpenAI from "https://deno.land/x/openai@v4.20.1/mod.ts";
-import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+import puppeteer, { Page } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { AppContext } from "../apps/site.ts";
 import { join } from "std/path/mod.ts";
 
@@ -61,6 +61,10 @@ const newTab = async (url: string) => {
   return page;
 };
 
+const getPageBody = async (page: Page) => {
+  return await page.evaluate(() => document.querySelector("body")?.innerHTML);
+};
+
 const canonalize = (url: string) => {
   const u = new URL(url);
 
@@ -81,9 +85,7 @@ const action = async (
 
   console.log("retrieving web page for", url);
   const page = await newTab(url);
-  const data = await page.evaluate(() =>
-    document.querySelector("body")?.innerHTML
-  );
+  const data = getPageBody(page);
   console.log("done");
 
   if (!data) {
@@ -145,13 +147,13 @@ const action = async (
     const gptFunctionInputList = run.required_action?.submit_tool_outputs
       .tool_calls;
     const args = gptFunctionInputList?.[0]?.function.arguments;
-    const inputCode = JSON.parse(args ?? "{}").code;
+    const inputCode = JSON.parse(args ?? "{}");
 
-    console.log(inputCode);
-
-    if (inputCode) {
-      const inputCodeLinks = await page.evaluate(inputCode);
-      console.log("Input links", inputCodeLinks);
+    if (inputCode.code) {
+      await page.evaluate(inputCode.code);
+      await page.waitForNetworkIdle();
+      const _navigatedBody = await getPageBody(page);
+      console.log(_navigatedBody);
     }
 
     return;
