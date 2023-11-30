@@ -2,7 +2,6 @@ import OpenAI from "https://deno.land/x/openai@v4.20.1/mod.ts";
 import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { AppContext } from "../apps/site.ts";
 import { join } from "std/path/mod.ts";
-import { ugly_chowder } from "./traverse.ts"
 
 interface Props {
   url: string;
@@ -14,20 +13,25 @@ const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const definitions = [
-{
-        type: "function",
-        function: {
-          name: "click_link",
-          //"description": "Clicks a link with the given pgpt_id on the page. Note that pgpt_id is required and you must use the corresponding pgpt-id attribute from the page content. Add the text of the link to confirm that you are clicking the right link.",
-          description: "Clicks a link with the given relative/absolute path",
-          parameters: {
-            type: "object",
-            properties: {
-              path: {
-                type: "string",
-                description: "The relative/absolute path to navigate to",
-              },
-              /*
+  {
+    type: "function",
+    function: {
+      name: "click_link",
+      //"description": "Clicks a link with the given pgpt_id on the page. Note that pgpt_id is required and you must use the corresponding pgpt-id attribute from the page content. Add the text of the link to confirm that you are clicking the right link.",
+      description: "Clicks a link element given it's id",
+      parameters: {
+        type: "object",
+        properties: {
+          text: {
+            type: "string",
+            description: "The text on the link you want to click",
+          },
+          id: {
+            type: "string",
+            description:
+              "The id of link that should be clicked (from the page content)",
+          },
+          /*
                     "text": {
                         "type": "string",
                         "description": "The text on the link you want to click"
@@ -37,53 +41,53 @@ const definitions = [
                         "description": "The pgpt-id of the link to click (from the page content)"
                     }
                     */
-            },
-            //"required": ["reason", "pgpt_id"]
-            required: ["path"],
-          },
         },
+        //"required": ["reason", "pgpt_id"]
+        required: ["text", "id"],
       },
-      {
-        type: "function",
-        function: {
-          name: "answer_user",
-          description:
-            "Give an answer to the user and end the navigation. Use when the given task has been completed. Summarize the relevant parts of the page content first and give an answer to the user based on that.",
-          parameters: {
-            type: "object",
-            properties: {
-              summary: {
-                type: "string",
-                description:
-                  "A summary of the relevant parts of the page content that you base the answer on",
-              },
-              answer: {
-                type: "string",
-                description: "The response to the user",
-              },
-            },
-            required: ["summary", "answer"],
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "answer_user",
+      description:
+        "Give an answer to the user and end the navigation. Use when the given task has been completed. Summarize the relevant parts of the page content first and give an answer to the user based on that.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: {
+            type: "string",
+            description:
+              "A summary of the relevant parts of the page content that you base the answer on",
+          },
+          answer: {
+            type: "string",
+            description: "The response to the user",
           },
         },
+        required: ["summary", "answer"],
       },
-      {
-        type: "function",
-        function: {
-          name: "report_error",
-          description: "Report an error encountered during navigation",
-          parameters: {
-            type: "object",
-            properties: {
-              error: {
-                type: "string",
-                description: "The error being reported",
-              },
-            },
-            required: ["error"],
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "report_error",
+      description: "Report an error encountered during navigation",
+      parameters: {
+        type: "object",
+        properties: {
+          error: {
+            type: "string",
+            description: "The error being reported",
           },
         },
-      }
-] as const
+        required: ["error"],
+      },
+    },
+  },
+] as const;
 
 const getAssistant = async () => {
   const name = "Roast my Commerce - Navigation Links - Teos";
@@ -141,10 +145,6 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   const data = await page.evaluate(
     () => document.querySelector("body")?.innerHTML,
   );
-  console.log("done");
-
-  console.log(ugly_chowder(data))
-  return;
 
   if (!data) {
     return;
@@ -153,14 +153,6 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   const assistant = await getAssistant();
 
   const thread = await openai.beta.threads.create();
-  const html = await openai.files.create({
-    purpose: "assistants",
-    file: {
-      url: new URL("index.html", url).href,
-      blob: () => Promise.resolve(new Blob([data], { type: "text/html" })),
-    },
-  });
-
   /**
    * 1. The Trendy Young Adult Female:
    - Age: 18-30
@@ -173,18 +165,25 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
     content:
       //        `The file anexed is the html of the website accesible at ${url}.`,
       `Task: Navigate to the category which will help you buy dresses`,
-    file_ids: [html.id],
   });
 
   let run = await openai.beta.threads.runs.create(thread.id, {
     assistant_id: assistant.id,
-    tools: definitions.filter(def => def.function.name !== "answer_user"),
+    tools: definitions.filter((def) => def.function.name !== "answer_user"),
     instructions: `## OBJECTIVE ##
      You have been tasked with navigating an ecommerce website based on a task given by the user. You are connected to a web browser which you can control via function calls to navigate to pages and list elements on the page. You can also type into search boxes and other input fields and send forms. You can also click links on the page. You will behave as a human browsing the web.
      
      ## NOTES ##
      If you find any errors while navigating the website, please report the error with the report_error function.
-     Make sure you only call "click_link" with actual links you find in the HTML file.`,
+     
+     ## START OF PAGE CONTENT ##
+     <a id="hj234k">Calçados</a>
+     <a id="sd8k56">Vestidos</a>
+     <a id="apo21i">Masculino</a>
+     <a id="19gas8">Feminino</a>
+     <a id="k6j1lj">Bolsas</a>
+     <a id="oiu1o4">Relógios</a>
+     ## END OF PAGE CONTENT ##`,
   });
 
   while (run.status === "in_progress" || run.status === "queued") {
