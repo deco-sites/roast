@@ -12,6 +12,8 @@ const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const ID_KEY = "id";
+
 const definitions = [
   {
     type: "function",
@@ -26,7 +28,7 @@ const definitions = [
             type: "string",
             description: "The text on the link you want to click",
           },
-          id: {
+          [ID_KEY]: {
             type: "string",
             description:
               "The id of link that should be clicked (from the page content)",
@@ -43,7 +45,7 @@ const definitions = [
                     */
         },
         //"required": ["reason", "pgpt_id"]
-        required: ["text", "id"],
+        required: ["text", ID_KEY],
       },
     },
   },
@@ -136,14 +138,43 @@ const canonalize = (url: string) => {
   return new URL(`${pathname}${u.search}`, u.origin).href;
 };
 
+const sanitizeLinks = () => {
+  const anchorTags = document.getElementsByTagName("a");
+
+  const getTextContent = (node: HTMLElement) => node.textContent;
+
+  const sanitizedTags = [...anchorTags].map((anchorTag) => {
+    const textContent = getTextContent(anchorTag);
+    const id = crypto.randomUUID().slice(0, 7);
+
+    // ID_KEY
+    return {
+      html: `<a id="${id}">${textContent}</a>`,
+      id,
+      href: anchorTag.href,
+    };
+  });
+  const mapped = sanitizedTags.reduce((res, curr) => {
+    res[curr.id] = curr;
+    return res;
+  }, {} as Record<string, { html: string; id: string; href: string }>);
+
+  return {
+    html: sanitizedTags.map((entry) => entry.html).join(""),
+    map: mapped,
+  };
+};
+
 const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   console.log("Get links \n\n");
-  const url = canonalize(props.url);
-
-  console.log("retrieving web page for", url);
-  const page = await newTab(url);
+  console.log("retrieving web page for", props.url);
+  const page = await newTab(props.url);
   const data = await page.evaluate(
-    () => document.querySelector("body")?.innerHTML,
+    () => document.body.innerHTML,
+  );
+
+  const { html: linksSanitizeds, map: mappedLinks } = await page.evaluate(
+    sanitizeLinks,
   );
 
   if (!data) {
@@ -153,6 +184,7 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   const assistant = await getAssistant();
 
   const thread = await openai.beta.threads.create();
+
   /**
    * 1. The Trendy Young Adult Female:
    - Age: 18-30
@@ -164,7 +196,7 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
     role: "user",
     content:
       //        `The file anexed is the html of the website accesible at ${url}.`,
-      `Task: Navigate to the category which will help you buy dresses`,
+      `Task: Buy a yellow bag`,
   });
 
   let run = await openai.beta.threads.runs.create(thread.id, {
@@ -177,12 +209,7 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
      If you find any errors while navigating the website, please report the error with the report_error function.
      
      ## START OF PAGE CONTENT ##
-     <a id="hj234k">Calçados</a>
-     <a id="sd8k56">Vestidos</a>
-     <a id="apo21i">Masculino</a>
-     <a id="19gas8">Feminino</a>
-     <a id="k6j1lj">Bolsas</a>
-     <a id="oiu1o4">Relógios</a>
+     <body>${linksSanitizeds}</body>
      ## END OF PAGE CONTENT ##`,
   });
 
