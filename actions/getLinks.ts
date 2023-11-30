@@ -8,7 +8,10 @@ interface Props {
 }
 
 const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
-const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+const browser = await puppeteer.launch({
+  args: ["--no-sandbox"],
+  headless: false,
+});
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -140,28 +143,46 @@ const canonalize = (url: string) => {
 
 const sanitizeLinks = () => {
   const anchorTags = document.getElementsByTagName("a");
+  const buttonTags = document.getElementsByTagName("button");
 
   const getTextContent = (node: HTMLElement) => node.textContent;
-
-  const sanitizedTags = [...anchorTags].map((anchorTag) => {
-    const textContent = getTextContent(anchorTag);
+  const reduceToMap = (
+    res: Record<string, { html: string; id: string }>,
+    curr: { html: string; id: string },
+  ) => {
+    res[curr.id] = curr;
+    return res;
+  };
+  const mapHTMLElements = (tagName: string) => (element: HTMLElement) => {
+    const textContent = getTextContent(element);
     const id = crypto.randomUUID().slice(0, 7);
+    element.id = id;
 
     // ID_KEY
     return {
-      html: `<a id="${id}">${textContent}</a>`,
+      html: `<${tagName} id="${id}">${textContent}</${tagName}>`,
       id,
-      href: anchorTag.href,
     };
-  });
-  const mapped = sanitizedTags.reduce((res, curr) => {
-    res[curr.id] = curr;
-    return res;
-  }, {} as Record<string, { html: string; id: string; href: string }>);
+  };
+
+  const sanitizedATags = [...anchorTags].map(mapHTMLElements("a"));
+  const mappedAs = sanitizedATags.reduce(
+    reduceToMap,
+    {} as Record<string, { html: string; id: string }>,
+  );
+
+  const sanitizedButtonTags = [...buttonTags].map(
+    mapHTMLElements("button"),
+  );
+  const mappedButtons = sanitizedATags.reduce(
+    reduceToMap,
+    {} as Record<string, { html: string; id: string }>,
+  );
 
   return {
-    html: sanitizedTags.map((entry) => entry.html).join(""),
-    map: mapped,
+    html: [...sanitizedATags, ...sanitizedButtonTags].map((entry) => entry.html)
+      .join(""),
+    map: { ...mappedAs, ...mappedButtons },
   };
 };
 
@@ -176,6 +197,8 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   const { html: linksSanitizeds, map: mappedLinks } = await page.evaluate(
     sanitizeLinks,
   );
+
+  console.log(linksSanitizeds, mappedLinks);
 
   if (!data) {
     return;
@@ -196,7 +219,7 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
     role: "user",
     content:
       //        `The file anexed is the html of the website accesible at ${url}.`,
-      `Task: Buy a yellow bag`,
+      `Task: Buy this t-shirt in this page`,
   });
 
   let run = await openai.beta.threads.runs.create(thread.id, {
@@ -224,7 +247,16 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   console.log(run);
 
   if (run.status === "requires_action") {
-    console.log(run.required_action?.submit_tool_outputs.tool_calls);
+    const action = run.required_action?.submit_tool_outputs.tool_calls[0]
+      .function.arguments;
+    const clickLinkProps = JSON.parse(action ?? "");
+    const puppyAction =
+      `document.getElementById("${clickLinkProps.id}").click()`;
+    console.log(
+      "action",
+      puppyAction,
+    );
+    page.evaluate(puppyAction);
     /*
     const gptFunctionInputList = run.required_action?.submit_tool_outputs
       .tool_calls;
