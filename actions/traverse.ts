@@ -1,4 +1,5 @@
-import cheerio from "https://deno.land/x/cheerio@1.0.7";
+// import * as cheerio from "https://deno.land/x/cheerio@1.0.7/mod.ts";
+import cheerio from "https://esm.sh/cheerio@1.0.0-rc.12";
 
 function make_tag(element) {
   const $ = cheerio;
