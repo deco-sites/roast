@@ -1,5 +1,4 @@
-import type { ImageWidget } from "apps/admin/widgets.ts";
-import Input from "deco-sites/roast/islands/Input.tsx";
+import { type ImageWidget } from "apps/admin/widgets.ts";
 
 /** @title {{{title}}} - {{{href}}} */
 export interface Link {
@@ -38,7 +37,6 @@ export default function Hero({
       <div class="font-bold text-3xl lg:text-6xl leading-tight lg:leading-none xl:w-5/6">
         {headline}
       </div>
-      <Input />
       {!!links?.length && (
         <ul class="mt-8 flex flex-col md:flex-row gap-2 md:gap-4">
           {links.map(({ href, title }) => (
