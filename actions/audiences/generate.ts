@@ -217,8 +217,7 @@ const action = async (
     : null;
 };
 
-// await caches.delete("tmp");
-const cache = await caches.open("tmp");
+const cache = await caches.open("deco-aliens");
 
 export default async (
   props: Props,

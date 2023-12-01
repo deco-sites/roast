@@ -326,10 +326,10 @@ const defaultTheme = {
   "tertiary-content": "hsla(0, 0%, 100%, 1)",
   "neutral": "hsla(0, 0%, 47%, 1)",
   "base-100": "hsla(0, 0%, 100%, 1)",
-  "success": "hsl(150 62% 95%)",
-  "warning": "hsl(43 100% 95%)",
-  "error": "hsl(9 100% 95%)",
-  "info": "hsl(220 100% 97%)",
+  "success": "hsl(151, 65%, 10%)",
+  "warning": "hsl(43, 100%, 95%)",
+  "error": "hsl(13, 65%, 10%)",
+  "info": "hsl(220, 100%, 97%)",
 
   "--rounded-box": "1rem", // border radius rounded-box utility class, used in card and other large boxes
   "--rounded-btn": "0.2rem" as const, // border radius rounded-btn utility class, used in buttons and similar element
