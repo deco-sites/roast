@@ -37,6 +37,12 @@ export default function Site(
   return app;
 }
 
+<<<<<<< HEAD
+=======
+export type SiteApp = ReturnType<typeof Site>;
+export type SiteManifest = Manifest;
+export type AppContext = AC<SiteApp>;
+>>>>>>> a758e4a (Add html to prompt)
 export { onBeforeResolveProps } from "apps/website/mod.ts";
 export type SiteApp = ReturnType<typeof Site>;
 export type SiteManifest = Manifest;
