@@ -1,5 +1,5 @@
 import OpenAI from "https://deno.land/x/openai@v4.20.1/mod.ts";
-import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+import puppeteer, { Page } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { AppContext } from "../apps/site.ts";
 import { join } from "std/path/mod.ts";
 import { get_page_content, get_tabbable_elements } from "./traverse.ts";
@@ -192,11 +192,26 @@ const newTab = async (url: string) => {
 //   };
 // };
 
-const execute = async (page, task, maxDepth) => {
+interface Step {
+  img: string;
+  url: string;
+}
+
+const execute = async (
+  page: Page,
+  task,
+  maxDepth,
+  steps: Step[] = [],
+) => {
   if (maxDepth == 0) return;
+  const screenshot: string = await page.screenshot({
+    encoding: "base64",
+    type: "webp",
+  }) as string;
+  steps.push({ img: screenshot, url: page.url() });
   const [, ids] = await get_tabbable_elements(page);
   const content = await get_page_content(page);
-  console.log(content);
+  // console.log(content);
 
   const assistant = await getAssistant();
 
@@ -221,7 +236,7 @@ const execute = async (page, task, maxDepth) => {
 
   tools[clickFnIdx] = clonedClickLink;
 
-  console.log(clonedClickLink.function.parameters.properties[ID_KEY]);
+  // console.log(clonedClickLink.function.parameters.properties[ID_KEY]);
 
   let run = await openai.beta.threads.runs.create(thread.id, {
     assistant_id: assistant.id,
@@ -264,7 +279,7 @@ const execute = async (page, task, maxDepth) => {
       // timeout: navigation_timeout,
       waitUntil: "load",
     });
-    await execute(page, task, maxDepth - 1);
+    await execute(page, task, maxDepth - 1, steps);
     return;
   }
 
@@ -287,9 +302,14 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   const page = await newTab(props.url);
 
   const task =
-    "Navigate to a tshirt product page then click to add the product into the cart";
+    "Navigate to a tshirt product page then click to add the product into the cart/basket";
   const maxDepth = 5;
-  await execute(page, task, maxDepth);
+  const steps: Step[] = [];
+  try {
+    await execute(page, task, maxDepth, steps);
+  } catch (_err) {}
+
+  return steps;
 };
 
 export default async (props, req, ctx) => {
