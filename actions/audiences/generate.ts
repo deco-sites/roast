@@ -49,7 +49,7 @@ const action = async (
   const data = await page.evaluate(() =>
     document.querySelector("body")?.innerHTML
   );
-  page.close();
+  page.close().catch(console.error);
   console.log("done");
 
   if (!data) {
