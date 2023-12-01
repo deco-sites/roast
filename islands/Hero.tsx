@@ -356,20 +356,20 @@ const Roast = (
 
             const minAwait = sleep(MIN_LOADING_AWAIT_MS);
 
-            const [roasted, _steps] = await Promise.all([
-              invoke["deco-sites/roast"].actions.aliens
-                .roast({ being, thread: thread.value ?? undefined }),
-              invoke["deco-sites/roast"].actions.getLinks({ url: url.value }),
-            ]);
+            roast.value = await invoke["deco-sites/roast"].actions.aliens
+              .roast({ being, thread: thread.value ?? undefined });
 
-            if (!roasted) {
-              throw new Error("Missing data");
-            }
+            console.log("roasting done");
+
+            steps.value = await invoke["deco-sites/roast"].actions.getLinks({
+              url: url.value!,
+              navigation: "get-links",
+              // deno-lint-ignore no-explicit-any
+            } as any) ?? null;
+
+            console.log("navigation done");
 
             await minAwait;
-
-            roast.value = roasted;
-            steps.value = _steps ?? null;
           } catch (error) {
             step.value = "error";
           } finally {
@@ -433,7 +433,8 @@ const Roast = (
 };
 
 const Summary = (props: Props & Signals) => {
-  const { bg, url, logo, audiences, audience, beings, being, step } = props;
+  const { bg, url, logo, audiences, audience, beings, being, step, loading } =
+    props;
 
   const index = being.value ?? 0;
   const b = beings.value?.at(index);
@@ -443,14 +444,16 @@ const Summary = (props: Props & Signals) => {
       class="min-h-screen bg-base-100 grid grid-cols-1 sm:grid-cols-[70%,30%] justify-center"
       style={{ backgroundImage: `url("${pickRandom(bg)}")` }}
     >
-      {url.value && (
-        <div class="p-8 w-full self-center">
-          <iframe
-            class="w-full bg-white aspect-video"
-            src={url.value}
-          />
-        </div>
-      )}
+      {loading.value
+        ? <Loading {...props} />
+        : url.value && (
+          <div class="p-8 w-full self-center">
+            <iframe
+              class="w-full bg-white aspect-video"
+              src={url.value}
+            />
+          </div>
+        )}
 
       <div class="flex flex-col p-4 gap-4 bg-[rgba(13,23,23,0.80)] self-stretch">
         <div class="flex">

@@ -237,6 +237,7 @@ const action = async (props: Props, _req: Request, ctx: AppContext) => {
   try {
     await execute(page, task, maxDepth, steps);
   } catch (_err) {
+    console.error(_err);
     return null;
   }
 
