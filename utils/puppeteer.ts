@@ -29,6 +29,11 @@ const getBrowser = (token: string | null) => {
 export const openPage = async (url: string, token: string | null) => {
   const browser = await getBrowser(token);
   const page = await browser.newPage();
+  page.setViewport({
+    width: 1280,
+    height: 720,
+    deviceScaleFactor: 1,
+  });
 
   await page.goto(url, { waitUntil: "networkidle0" });
 

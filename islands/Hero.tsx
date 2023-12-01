@@ -8,6 +8,7 @@ import { clx } from "deco-sites/roast/utils/clx.ts";
 import { type ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import Image from "apps/website/components/Image.tsx";
+import { dataURI } from "apps/utils/dataURI.ts";
 
 const MIN_LOADING_AWAIT_MS = 0e3;
 const MIN_DISPLAY_MESSAGE_MS = 5e3;
@@ -35,6 +36,7 @@ interface Signals {
   beings: Signal<Being[] | null>;
   being: Signal<number | null>;
   thread: Signal<string | null>;
+  steps: Signal<Step[] | null>;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -334,9 +336,12 @@ const Beings = (props: Props & Signals) => {
 };
 
 const Roast = (
-  { being, loading, thread, step }: Props & Omit<Signals, "being"> & {
-    being: Being | undefined;
-  },
+  { being, loading, thread, step, url, steps }:
+    & Props
+    & Omit<Signals, "being">
+    & {
+      being: Being | undefined;
+    },
 ) => {
   const roast = useSignal<string | null>(null);
 
@@ -351,16 +356,20 @@ const Roast = (
 
             const minAwait = sleep(MIN_LOADING_AWAIT_MS);
 
-            const response = await invoke["deco-sites/roast"].actions.aliens
-              .roast({ being, thread: thread.value ?? undefined });
+            const [roasted, _steps] = await Promise.all([
+              invoke["deco-sites/roast"].actions.aliens
+                .roast({ being, thread: thread.value ?? undefined }),
+              invoke["deco-sites/roast"].actions.getLinks({ url: url.value }),
+            ]);
 
-            if (!response) {
+            if (!roasted) {
               throw new Error("Missing data");
             }
 
             await minAwait;
 
-            roast.value = response;
+            roast.value = roasted;
+            steps.value = _steps ?? null;
           } catch (error) {
             step.value = "error";
           } finally {
@@ -368,7 +377,9 @@ const Roast = (
           }
         }}
       >
-        {loading.value ? <span class="loading loading-spinner" /> : "Dissect my site"}
+        {loading.value
+          ? <span class="loading loading-spinner" />
+          : "Dissect my site"}
       </button>
     );
   }
@@ -394,7 +405,24 @@ const Roast = (
       <div class="modal" role="dialog">
         <div class="modal-box max-w-fit">
           <h3 class="font-bold text-lg">Summary</h3>
-          <div class="py-4 whitespace-pre-line" dangerouslySetInnerHTML={{ __html: roast.value }} />
+          <div
+            class="py-4 whitespace-pre-line"
+            dangerouslySetInnerHTML={{ __html: roast.value }}
+          />
+
+          <div>
+            {steps.value?.map(({ img, url }) => (
+              <div>
+                Page url: {url}
+                <img
+                  width="1280"
+                  height="720"
+                  src={dataURI("image/webp", true, img)}
+                />
+              </div>
+            ))}
+          </div>
+
           <div class="modal-action">
             <label for="summary-modal" class="btn">Close</label>
           </div>
@@ -540,6 +568,11 @@ const ErrorView = (
   </Layout>
 );
 
+interface Step {
+  img: string;
+  url: string;
+}
+
 type StateMachine =
   | "greetings"
   | "form"
@@ -560,6 +593,7 @@ export default function Island(props: Props) {
     beings: useSignal<Being[] | null>(null),
     thread: useSignal<string | null>(null),
     url: useSignal<string | null>(null),
+    steps: useSignal<Step[] | null>(null),
   };
 
   const step = signals.step.value;

@@ -1,7 +1,7 @@
 import OpenAI from "https://deno.land/x/openai@v4.20.1/mod.ts";
-import puppeteer, { Page } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+import { Page } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+import { openPage } from "../utils/puppeteer.ts";
 import { AppContext } from "../apps/site.ts";
-import { join } from "std/path/mod.ts";
 import { get_page_content, get_tabbable_elements } from "./traverse.ts";
 
 interface Props {
@@ -9,10 +9,6 @@ interface Props {
 }
 
 const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
-const browser = await puppeteer.launch({
-  args: ["--no-sandbox"],
-  headless: false,
-});
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -124,74 +120,6 @@ const getAssistant = async () => {
   });
 };
 
-const newTab = async (url: string) => {
-  const page = await browser.newPage();
-  await page.setViewport({
-    width: 1280,
-    height: 720,
-    deviceScaleFactor: 1,
-  });
-
-  await page.goto(url, { waitUntil: "networkidle0" });
-
-  return page;
-};
-
-// const canonalize = (url: string) => {
-//   const u = new URL(url);
-//
-//   const pathname = u.pathname.endsWith(".html")
-//     ? u.pathname
-//     : join(u.pathname, "index.html");
-//
-//   return new URL(`${pathname}${u.search}`, u.origin).href;
-// };
-//
-// const sanitizeLinks = () => {
-//   const anchorTags = document.getElementsByTagName("a");
-//   const buttonTags = document.getElementsByTagName("button");
-//
-//   const getTextContent = (node: HTMLElement) => node.textContent;
-//   const reduceToMap = (
-//     res: Record<string, { html: string; id: string }>,
-//     curr: { html: string; id: string },
-//   ) => {
-//     res[curr.id] = curr;
-//     return res;
-//   };
-//   const mapHTMLElements = (tagName: string) => (element: HTMLElement) => {
-//     const textContent = getTextContent(element);
-//     const id = crypto.randomUUID().slice(0, 7);
-//     element.id = id;
-//
-//     // ID_KEY
-//     return {
-//       html: `<${tagName} id="${id}">${textContent}</${tagName}>`,
-//       id,
-//     };
-//   };
-//
-//   const sanitizedATags = [...anchorTags].map(mapHTMLElements("a"));
-//   const mappedAs = sanitizedATags.reduce(
-//     reduceToMap,
-//     {} as Record<string, { html: string; id: string }>,
-//   );
-//
-//   const sanitizedButtonTags = [...buttonTags].map(
-//     mapHTMLElements("button"),
-//   );
-//   const mappedButtons = sanitizedATags.reduce(
-//     reduceToMap,
-//     {} as Record<string, { html: string; id: string }>,
-//   );
-//
-//   return {
-//     html: [...sanitizedATags, ...sanitizedButtonTags].map((entry) => entry.html)
-//       .join(""),
-//     map: { ...mappedAs, ...mappedButtons },
-//   };
-// };
-
 interface Step {
   img: string;
   url: string;
@@ -199,8 +127,8 @@ interface Step {
 
 const execute = async (
   page: Page,
-  task,
-  maxDepth,
+  task: string,
+  maxDepth: number,
   steps: Step[] = [],
 ) => {
   if (maxDepth == 0) return;
@@ -299,7 +227,7 @@ const execute = async (
 const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   console.log("Get links \n\n");
   console.log("retrieving web page for", props.url);
-  const page = await newTab(props.url);
+  const page = await openPage(props.url);
 
   const task =
     "Navigate to a tshirt product page then click to add the product into the cart/basket";
