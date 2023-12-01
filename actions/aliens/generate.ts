@@ -3,6 +3,7 @@ import { getAssistant } from "deco-sites/roast/utils/assistants.ts";
 import openai, { Run } from "deco-sites/roast/utils/openai.ts";
 import { type AppContext } from "../../apps/site.ts";
 import { printThread } from "deco-sites/roast/utils/debug.ts";
+import { withCache } from "deco-sites/roast/utils/cache.ts";
 
 interface Props {
   audience: Audience;
@@ -210,31 +211,4 @@ const action = async (
   return beings;
 };
 
-const cache = await caches.open("deco-aliens");
-
-export default async (
-  props: Props,
-  req: Request,
-  ctx: AppContext,
-): Promise<Being[] | null> => {
-  try {
-    const url = new URL(req.url);
-    url.searchParams.set("audience", JSON.stringify(props.audience));
-    url.searchParams.set("thread", props.thread ?? "");
-    const cached = await cache.match(url);
-
-    if (cached) {
-      return cached.json();
-    }
-
-    const response = await action(props, req, ctx);
-
-    cache.put(url, new Response(JSON.stringify(response)));
-
-    return response;
-  } catch (error) {
-    console.error(error);
-  }
-
-  return null;
-};
+export default withCache(action);

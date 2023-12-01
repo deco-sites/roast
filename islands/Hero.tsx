@@ -5,9 +5,11 @@ import { type Being } from "deco-sites/roast/actions/aliens/generate.ts";
 import { type Audience } from "deco-sites/roast/actions/audiences/generate.ts";
 import { invoke } from "deco-sites/roast/runtime.ts";
 import { clx } from "deco-sites/roast/utils/clx.ts";
-import { sleep } from "https://esm.sh/v133/@supabase/gotrue-js@2.55.0/dist/module/lib/helpers.js";
 import { type ComponentChildren } from "preact";
 import { useEffect } from "preact/hooks";
+
+const MIN_LOADING_AWAIT_MS = 0e3;
+const MIN_DISPLAY_MESSAGE_MS = 5e3;
 
 export interface Props {
   bg: ImageWidget;
@@ -31,6 +33,8 @@ interface Signals {
   being: Signal<number | null>;
   thread: Signal<string | null>;
 }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const Layout = (
   { bg, logo, children }: Props & { children: ComponentChildren },
@@ -96,7 +100,7 @@ const Form = (props: Props & Signals) => {
             audiences.value = null;
             step.value = "audience-loading";
 
-            const minAwait = sleep(5e3);
+            const minAwait = sleep(MIN_LOADING_AWAIT_MS);
 
             const result = await invoke["deco-sites/roast"].actions
               .audiences
@@ -133,14 +137,14 @@ const Form = (props: Props & Signals) => {
 const pickRandom = <T,>(array: T[]) =>
   array[Math.floor(Math.random() * array.length)];
 
-const Loading = (props: Props & { sentence: string }) => {
+const Loading = (props: Props) => {
   const { messages } = props;
   const message = useSignal(pickRandom(messages));
 
   useEffect(() => {
     const interval = setInterval(() => {
       message.value = pickRandom(messages);
-    }, 5e3);
+    }, MIN_DISPLAY_MESSAGE_MS);
 
     return () => {
       clearInterval(interval);
@@ -196,7 +200,7 @@ const Audiences = (props: Props & Signals) => {
 
                 loading.value = true;
 
-                const minAwait = sleep(5e3);
+                const minAwait = sleep(MIN_LOADING_AWAIT_MS);
 
                 const response = await invoke["deco-sites/roast"]
                   .actions
@@ -313,6 +317,69 @@ const Beings = (props: Props & Signals) => {
   );
 };
 
+const Roast = (
+  { being, loading, thread }: Props & Omit<Signals, "being"> & {
+    being: Being | undefined;
+  },
+) => {
+  const roast = useSignal<string | null>(null);
+
+  if (!roast.value) {
+    return (
+      <button
+        class="btn btn-primary"
+        disabled={loading.value}
+        onClick={async () => {
+          try {
+            loading.value = true;
+
+            const minAwait = sleep(MIN_LOADING_AWAIT_MS);
+
+            roast.value = await invoke["deco-sites/roast"].actions.aliens
+              .roast({ being, thread: thread.value ?? undefined });
+
+            await minAwait;
+          } finally {
+            loading.value = false;
+          }
+        }}
+      >
+        {loading.value ? <span class="loading loading-spinner" /> : "Roast!"}
+      </button>
+    );
+  }
+
+  return (
+    <>
+      <label for="summary-modal">
+        <div
+          class="flex flex-col cursor-pointer"
+          onClick={() => {}}
+        >
+          <span class="font-semibold text-xl text-opacity-80 text-base-content">
+            Summary
+          </span>
+          <div
+            class="font-normal text-base overflow-y-auto max-h-[30vh]"
+            dangerouslySetInnerHTML={{ __html: roast.value }}
+          />
+        </div>
+      </label>
+
+      <input type="checkbox" id="summary-modal" class="modal-toggle" />
+      <div class="modal" role="dialog">
+        <div class="modal-box max-w-fit">
+          <h3 class="font-bold text-lg">Summary</h3>
+          <div class="py-4" dangerouslySetInnerHTML={{ __html: roast.value }} />
+          <div class="modal-action">
+            <label for="summary-modal" class="btn">Close</label>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 const Summary = (props: Props & Signals) => {
   const { bg, url, logo, audiences, audience, beings, being, step } = props;
 
@@ -403,14 +470,7 @@ const Summary = (props: Props & Signals) => {
           </span>
         </div>
 
-        <div class="flex flex-col">
-          <span class="font-semibold text-xl text-opacity-80 text-base-content">
-            Summary
-          </span>
-          <span class="font-normal text-base">
-            {"Todo"}
-          </span>
-        </div>
+        <Roast {...props} being={b} />
       </div>
     </div>
   );
@@ -445,11 +505,11 @@ export default function Island(props: Props) {
     case "form":
       return <Form {...props} {...signals} />;
     case "audience-loading":
-      return <Loading {...props} sentence="Contacting Andromeda" />;
+      return <Loading {...props} />;
     case "audience":
       return <Audiences {...props} {...signals} />;
     case "beings-loading":
-      return <Loading {...props} sentence="Starting the invasion" />;
+      return <Loading {...props} />;
     case "beings":
       return <Beings {...props} {...signals} />;
     case "summary":
