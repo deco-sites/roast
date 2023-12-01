@@ -24,7 +24,7 @@ const definitions = [
     function: {
       name: "click_link",
       //"description": "Clicks a link with the given pgpt_id on the page. Note that pgpt_id is required and you must use the corresponding pgpt-id attribute from the page content. Add the text of the link to confirm that you are clicking the right link.",
-      description: "Clicks a link element given it's id",
+      description: "Clicks a link element given it's pgpt-id",
       parameters: {
         type: "object",
         properties: {
@@ -35,7 +35,7 @@ const definitions = [
           [ID_KEY]: {
             type: "string",
             description:
-              "The id of link that should be clicked (from the page content)",
+              "The pgpt-id of an element that should be clicked (from the page content)",
           },
           /*
                     "text": {
@@ -120,7 +120,7 @@ const getAssistant = async () => {
       { type: "retrieval" },
     ],
 
-    model: "gpt-4",
+    model: "gpt-4-1106-preview",
   });
 };
 
@@ -192,43 +192,21 @@ const sanitizeLinks = () => {
   };
 };
 
-const action = async (props: Props, _req: Request, __ctx: AppContext) => {
-  console.log("Get links \n\n");
-  console.log("retrieving web page for", props.url);
-  const page = await newTab(props.url);
-  const data = await page.evaluate(
-    () => document.body.innerHTML,
-  );
+const execute = async (page, task, maxDepth) => {
+  if (maxDepth == 0) return;
   await get_tabbable_elements(page);
   const content = await get_page_content(page)
   console.log(content)
-
-  const { html: linksSanitizeds, map: mappedLinks } = await page.evaluate(
-    sanitizeLinks,
-  );
-
-  console.log(linksSanitizeds, mappedLinks);
-
-  if (!data) {
-    return;
-  }
 
   const assistant = await getAssistant();
 
   const thread = await openai.beta.threads.create();
 
-  /**
-   * 1. The Trendy Young Adult Female:
-   - Age: 18-30
-   - Interests: Following the latest fashion trends, enjoying a social lifestyle
-   - Shopping Preferences: Fashionable, urban, and casual wear, as well as sport and fitness apparel
-   - Potential Products: "Estilo Fashion" and "Estilo Urbano" collections, sportswear, and casual wear
-   */
   await openai.beta.threads.messages.create(thread.id, {
     role: "user",
     content:
       //        `The file anexed is the html of the website accesible at ${url}.`,
-      `Task: buy this t-shirt in the current page`,
+      `Task: ${task}`,
   });
 
   let run = await openai.beta.threads.runs.create(thread.id, {
@@ -239,7 +217,7 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
      
      ## NOTES ##
      If you find any errors while navigating the website, please report the error with the report_error function.
-    
+     
      ${content}`
   });
 
@@ -263,20 +241,8 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
       "action",
       puppyAction,
     );
-    page.evaluate(puppyAction);
-    /*
-    const gptFunctionInputList = run.required_action?.submit_tool_outputs
-      .tool_calls;
-    const args = gptFunctionInputList?.[0]?.function.arguments;
-    const inputCode = JSON.parse(args ?? "{}").code;
-
-    console.log(inputCode);
-
-    if (inputCode) {
-      const inputCodeLinks = await page.evaluate(inputCode);
-      console.log("Input links", inputCodeLinks);
-    }
-    */
+    await page.evaluate(puppyAction);
+    execute(page, task)
     return;
   }
 
@@ -291,6 +257,16 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
       }`,
     );
   }
+}
+
+const action = async (props: Props, _req: Request, __ctx: AppContext) => {
+  console.log("Get links \n\n");
+  console.log("retrieving web page for", props.url);
+  const page = await newTab(props.url);
+
+  const task = "Navigate to a children's bed product page then add it to the cart"
+  const maxDepth = 5;
+  await execute(page, task, maxDepth)
 };
 
 export default async (props, req, ctx) => {
