@@ -153,7 +153,7 @@ const Loading = (props: Props) => {
 
   return (
     <Layout {...props}>
-      <div class="py-6 flex items-center gap-4">
+      <div class="py-6 flex items-center gap-4 justify-center w-96">
         <span class="animate-pulse">{message.value}</span>
         <span class="loading loading-ring loading-lg" />
       </div>
