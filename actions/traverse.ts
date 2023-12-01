@@ -1,61 +1,67 @@
 // import * as cheerio from "https://deno.land/x/cheerio@1.0.7/mod.ts";
 import cheerio from "https://esm.sh/cheerio@1.0.0-rc.12";
 
-export async function get_page_content( page ) {
+export async function get_page_content(page) {
   const title = await page.evaluate(() => {
-      return document.title;
+    return document.title;
   });
 
   const html = await page.evaluate(() => {
-      return document.body.innerHTML;
+    return document.body.innerHTML;
   });
 
-  return "## START OF PAGE CONTENT ##\nTitle: " + title + "\n\n" + ugly_chowder( html ) + "\n## END OF PAGE CONTENT ##";
+  return "## START OF PAGE CONTENT ##\nTitle: " + title + "\n\n" +
+    ugly_chowder(html) + "\n## END OF PAGE CONTENT ##";
 }
 
-export async function get_tabbable_elements( page, selector = "*" ) {
+export async function get_tabbable_elements(page, selector = "*") {
   let tabbable_elements = [];
   let skipped = [];
   let id = 0;
 
-  let elements = await page.$$('input:not([type=hidden]):not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"]), select:not([disabled]), a[href]:not([href="javascript:void(0)"]):not([href="#"]), dialog[open]');
+  let elements = await page.$$(
+    'input:not([type=hidden]):not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"]), select:not([disabled]), a[href]:not([href="javascript:void(0)"]):not([href="#"]), dialog[open]',
+  );
 
   let limit = 400;
 
-  for( const element of elements ) {
-      if( --limit < 0 ) {
-          break;
-      }
+  const ids: string[] = [];
+  for (const element of elements) {
+    if (--limit < 0) {
+      break;
+    }
 
-      const next_tab = await get_next_tab( page, element, ++id, selector );
+    const next_tab = await get_next_tab(page, element, ++id, selector);
 
-      if( next_tab !== false ) {
-          tabbable_elements.push( next_tab );
-      }
+    if (next_tab !== false) {
+      tabbable_elements.push(next_tab);
+      ids.push(id.toString());
+    }
   }
 
-  return tabbable_elements;
+  return [tabbable_elements, ids];
 }
 
-async function get_next_tab( page, element, id, selector = "*" ) {
-  let obj = await page.evaluate(async (element, id, selector) => {
-      if( ! element.matches( selector ) ) {
-          return false;
+async function get_next_tab(page, element, id, selector = "*") {
+  let obj = await page.evaluate(
+    async (element, id, selector) => {
+      if (!element.matches(selector)) {
+        return false;
       }
 
       const tagName = element.tagName;
 
-      if( tagName === "BODY" ) {
-          return false;
+      if (tagName === "BODY") {
+        return false;
       }
 
-      let textContent = element.textContent.replace(/\s+/g, ' ').trim();
+      let textContent = element.textContent.replace(/\s+/g, " ").trim();
 
-      if( textContent === "" && ! element.matches( "select, input, textarea" ) ) {
-          return false;
+      if (textContent === "" && !element.matches("select, input, textarea")) {
+        return false;
       }
 
-      element.classList.add("pgpt-element"+id);
+      element.classList.add("pgpt-element" + id);
 
       let role = element.role;
       let placeholder = element.placeholder;
@@ -64,79 +70,83 @@ async function get_next_tab( page, element, id, selector = "*" ) {
       let href = element.href;
       let value = element.value;
 
-      if( href && href.length > 32 ) {
-          href = href.substring( 0, 32 ) + "[..]";
+      if (href && href.length > 32) {
+        href = href.substring(0, 32) + "[..]";
       }
 
-      if( placeholder && placeholder.length > 32 ) {
-          placeholder = placeholder.substring( 0, 32 ) + "[..]";
+      if (placeholder && placeholder.length > 32) {
+        placeholder = placeholder.substring(0, 32) + "[..]";
       }
 
-      if( ! textContent && title && title.length > 32 ) {
-          title = title.substring( 0, 32 ) + "[..]";
+      if (!textContent && title && title.length > 32) {
+        title = title.substring(0, 32) + "[..]";
       }
 
-      if( textContent && textContent.length > 200 ) {
-          textContent = textContent.substring( 0, 200 ) + "[..]";
+      if (textContent && textContent.length > 200) {
+        textContent = textContent.substring(0, 200) + "[..]";
       }
 
       let tag = `<${tagName}`;
 
-      if( href ) { tag += ` href="${href}"` };
-      if( type ) { tag += ` type="${type}"` };
-      if( placeholder ) { tag += ` placeholder="${placeholder}"` };
-      if( title ) { tag += ` title="${title}"` };
-      if( role ) { tag += ` role="${role}"` };
-      if( value ) { tag += ` value="${value}"` };
+      if (href) tag += ` href="${href}"`;
+      if (type) tag += ` type="${type}"`;
+      if (placeholder) tag += ` placeholder="${placeholder}"`;
+      if (title) tag += ` title="${title}"`;
+      if (role) tag += ` role="${role}"`;
+      if (value) tag += ` value="${value}"`;
 
       tag += `>`;
 
       let obj = {
-          tag: tag,
-          id: id,
+        tag: tag,
+        id: id,
       };
 
-      if( textContent ) {
-          obj.text = textContent;
+      if (textContent) {
+        obj.text = textContent;
       }
 
       return obj;
-  }, element, id, selector);
+    },
+    element,
+    id,
+    selector,
+  );
 
-  if( ! obj ) {
-      return false;
+  if (!obj) {
+    return false;
   }
 
-  const visible = await page.evaluate( async (id) => {
-      const element = document.querySelector(".pgpt-element"+id);
+  const visible = await page.evaluate(async (id) => {
+    const element = document.querySelector(".pgpt-element" + id);
 
-      if( ! element ) {
-          return false;
-      }
-
-      const visibility = element.style.visibility;
-      const display = element.style.display;
-      const clip = element.style.clip;
-      const rect = element.getBoundingClientRect();
-
-      return (
-          visibility !== 'hidden' &&
-          display !== 'none' &&
-          rect.width != 0 &&
-          rect.height != 0 &&
-          clip !== "rect(1px, 1px, 1px, 1px)" &&
-          clip !== "rect(0px, 0px, 0px, 0px)"
-      );
-  }, id );
-
-  if( ! visible ) {
+    if (!element) {
       return false;
+    }
+
+    const visibility = element.style.visibility;
+    const display = element.style.display;
+    const clip = element.style.clip;
+    const rect = element.getBoundingClientRect();
+
+    return (
+      visibility !== "hidden" &&
+      display !== "none" &&
+      rect.width != 0 &&
+      rect.height != 0 &&
+      clip !== "rect(1px, 1px, 1px, 1px)" &&
+      clip !== "rect(0px, 0px, 0px, 0px)"
+    );
+  }, id);
+
+  if (!visible) {
+    return false;
   } else {
-      await page.evaluate( async (id) => {
-          const element = document.querySelector( ".pgpt-element"+id );
-          element.setAttribute( "pgpt-id", id );
-          element.style.border="1px solid red";
-      }, id );
+    await page.evaluate(async (id) => {
+      const element = document.querySelector(".pgpt-element" + id);
+      element.setAttribute("pgpt-id", id);
+      element.style.border = "1px solid red";
+    }, id);
   }
 
   return obj;

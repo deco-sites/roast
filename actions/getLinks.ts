@@ -2,7 +2,7 @@ import OpenAI from "https://deno.land/x/openai@v4.20.1/mod.ts";
 import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { AppContext } from "../apps/site.ts";
 import { join } from "std/path/mod.ts";
-import { get_tabbable_elements, get_page_content } from "./traverse.ts";
+import { get_page_content, get_tabbable_elements } from "./traverse.ts";
 
 interface Props {
   url: string;
@@ -24,7 +24,7 @@ const definitions = [
     function: {
       name: "click_link",
       //"description": "Clicks a link with the given pgpt_id on the page. Note that pgpt_id is required and you must use the corresponding pgpt-id attribute from the page content. Add the text of the link to confirm that you are clicking the right link.",
-      description: "Clicks a link element given it's pgpt-id",
+      // description: "Clicks a link element given it's pgpt-id",
       parameters: {
         type: "object",
         properties: {
@@ -34,8 +34,8 @@ const definitions = [
           },
           [ID_KEY]: {
             type: "string",
-            description:
-              "The pgpt-id of an element that should be clicked (from the page content)",
+            // description:
+            // "The pgpt-id of an element that should be clicked (from the page content)",
           },
           /*
                     "text": {
@@ -126,77 +126,77 @@ const getAssistant = async () => {
 
 const newTab = async (url: string) => {
   const page = await browser.newPage();
-  await page.setViewport( {
+  await page.setViewport({
     width: 1200,
     height: 1200,
     deviceScaleFactor: 1,
-} );
+  });
 
   await page.goto(url, { waitUntil: "networkidle0" });
 
   return page;
 };
 
-const canonalize = (url: string) => {
-  const u = new URL(url);
-
-  const pathname = u.pathname.endsWith(".html")
-    ? u.pathname
-    : join(u.pathname, "index.html");
-
-  return new URL(`${pathname}${u.search}`, u.origin).href;
-};
-
-const sanitizeLinks = () => {
-  const anchorTags = document.getElementsByTagName("a");
-  const buttonTags = document.getElementsByTagName("button");
-
-  const getTextContent = (node: HTMLElement) => node.textContent;
-  const reduceToMap = (
-    res: Record<string, { html: string; id: string }>,
-    curr: { html: string; id: string },
-  ) => {
-    res[curr.id] = curr;
-    return res;
-  };
-  const mapHTMLElements = (tagName: string) => (element: HTMLElement) => {
-    const textContent = getTextContent(element);
-    const id = crypto.randomUUID().slice(0, 7);
-    element.id = id;
-
-    // ID_KEY
-    return {
-      html: `<${tagName} id="${id}">${textContent}</${tagName}>`,
-      id,
-    };
-  };
-
-  const sanitizedATags = [...anchorTags].map(mapHTMLElements("a"));
-  const mappedAs = sanitizedATags.reduce(
-    reduceToMap,
-    {} as Record<string, { html: string; id: string }>,
-  );
-
-  const sanitizedButtonTags = [...buttonTags].map(
-    mapHTMLElements("button"),
-  );
-  const mappedButtons = sanitizedATags.reduce(
-    reduceToMap,
-    {} as Record<string, { html: string; id: string }>,
-  );
-
-  return {
-    html: [...sanitizedATags, ...sanitizedButtonTags].map((entry) => entry.html)
-      .join(""),
-    map: { ...mappedAs, ...mappedButtons },
-  };
-};
+// const canonalize = (url: string) => {
+//   const u = new URL(url);
+//
+//   const pathname = u.pathname.endsWith(".html")
+//     ? u.pathname
+//     : join(u.pathname, "index.html");
+//
+//   return new URL(`${pathname}${u.search}`, u.origin).href;
+// };
+//
+// const sanitizeLinks = () => {
+//   const anchorTags = document.getElementsByTagName("a");
+//   const buttonTags = document.getElementsByTagName("button");
+//
+//   const getTextContent = (node: HTMLElement) => node.textContent;
+//   const reduceToMap = (
+//     res: Record<string, { html: string; id: string }>,
+//     curr: { html: string; id: string },
+//   ) => {
+//     res[curr.id] = curr;
+//     return res;
+//   };
+//   const mapHTMLElements = (tagName: string) => (element: HTMLElement) => {
+//     const textContent = getTextContent(element);
+//     const id = crypto.randomUUID().slice(0, 7);
+//     element.id = id;
+//
+//     // ID_KEY
+//     return {
+//       html: `<${tagName} id="${id}">${textContent}</${tagName}>`,
+//       id,
+//     };
+//   };
+//
+//   const sanitizedATags = [...anchorTags].map(mapHTMLElements("a"));
+//   const mappedAs = sanitizedATags.reduce(
+//     reduceToMap,
+//     {} as Record<string, { html: string; id: string }>,
+//   );
+//
+//   const sanitizedButtonTags = [...buttonTags].map(
+//     mapHTMLElements("button"),
+//   );
+//   const mappedButtons = sanitizedATags.reduce(
+//     reduceToMap,
+//     {} as Record<string, { html: string; id: string }>,
+//   );
+//
+//   return {
+//     html: [...sanitizedATags, ...sanitizedButtonTags].map((entry) => entry.html)
+//       .join(""),
+//     map: { ...mappedAs, ...mappedButtons },
+//   };
+// };
 
 const execute = async (page, task, maxDepth) => {
   if (maxDepth == 0) return;
-  await get_tabbable_elements(page);
-  const content = await get_page_content(page)
-  console.log(content)
+  const [, ids] = await get_tabbable_elements(page);
+  const content = await get_page_content(page);
+  console.log(content);
 
   const assistant = await getAssistant();
 
@@ -209,16 +209,30 @@ const execute = async (page, task, maxDepth) => {
       `Task: ${task}`,
   });
 
+  const tools = definitions.filter((def) =>
+    def.function.name !== "answer_user"
+  );
+  const clickFnIdx = definitions.findIndex((def) =>
+    def.function.name === "click_link"
+  );
+  const clonedClickLink = structuredClone(tools[clickFnIdx]);
+  // @ts-expect-error this value exists
+  clonedClickLink.function.parameters.properties[ID_KEY].enums = ids;
+
+  tools[clickFnIdx] = clonedClickLink;
+
+  console.log(clonedClickLink.function.parameters.properties[ID_KEY]);
+
   let run = await openai.beta.threads.runs.create(thread.id, {
     assistant_id: assistant.id,
-    tools: definitions.filter((def) => def.function.name !== "answer_user"),
+    tools,
     instructions: `## OBJECTIVE ##
      You have been tasked with navigating an ecommerce website based on a task given by the user. You are connected to a web browser which you can control via function calls to navigate to pages and list elements on the page. You can also type into search boxes and other input fields and send forms. You can also click links on the page. You will behave as a human browsing the web.
      
      ## NOTES ##
      If you find any errors while navigating the website, please report the error with the report_error function.
      
-     ${content}`
+     ${content}`,
   });
 
   while (run.status === "in_progress" || run.status === "queued") {
@@ -235,14 +249,19 @@ const execute = async (page, task, maxDepth) => {
     const action = run.required_action?.submit_tool_outputs.tool_calls[0]
       .function.arguments;
     const clickLinkProps = JSON.parse(action ?? "");
-    const puppyAction =
-      `document.querySelector('[pgpt-id="${clickLinkProps["pgpt-id"]}"]').click()`;
+    const puppyAction = `document.querySelector('[pgpt-id="${
+      clickLinkProps["pgpt-id"]
+    }"]').click()`;
     console.log(
       "action",
       puppyAction,
     );
-    await page.evaluate(puppyAction);
-    execute(page, task)
+    await page.click(`[pgpt-id="${clickLinkProps["pgpt-id"]}"]`);
+    await page.waitForNavigation({
+      // timeout: navigation_timeout,
+      waitUntil: "load",
+    });
+    await execute(page, task, maxDepth - 1);
     return;
   }
 
@@ -257,16 +276,16 @@ const execute = async (page, task, maxDepth) => {
       }`,
     );
   }
-}
+};
 
 const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   console.log("Get links \n\n");
   console.log("retrieving web page for", props.url);
   const page = await newTab(props.url);
 
-  const task = "Navigate to a children's bed product page then add it to the cart"
+  const task = "Navigate to a tshirt product page then add it to the cart";
   const maxDepth = 5;
-  await execute(page, task, maxDepth)
+  await execute(page, task, maxDepth);
 };
 
 export default async (props, req, ctx) => {
