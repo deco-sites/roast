@@ -224,10 +224,10 @@ const execute = async (
   }
 };
 
-const action = async (props: Props, _req: Request, __ctx: AppContext) => {
+const action = async (props: Props, _req: Request, ctx: AppContext) => {
   console.log("Get links \n\n");
   console.log("retrieving web page for", props.url);
-  const page = await openPage(props.url);
+  const page = await openPage(props.url, ctx.browserless);
 
   const task =
     "Navigate to a tshirt product page then click to add the product into the cart/basket";
