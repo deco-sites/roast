@@ -3,6 +3,7 @@ import { Page } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { openPage } from "../utils/puppeteer.ts";
 import { AppContext } from "../apps/site.ts";
 import { get_page_content, get_tabbable_elements } from "./traverse.ts";
+import { withCache } from "deco-sites/roast/utils/cache.ts";
 
 interface Props {
   url: string;
@@ -131,10 +132,10 @@ const execute = async (
   maxDepth: number,
   steps: Step[] = [],
 ) => {
-  if (maxDepth == 0) return;
+  if (maxDepth == 0) return null;
   const screenshot: string = await page.screenshot({
     encoding: "base64",
-    type: "webp",
+    type: "jpeg",
   }) as string;
   steps.push({ img: screenshot, url: page.url() });
   const [, ids] = await get_tabbable_elements(page);
@@ -235,15 +236,18 @@ const action = async (props: Props, _req: Request, ctx: AppContext) => {
   const steps: Step[] = [];
   try {
     await execute(page, task, maxDepth, steps);
-  } catch (_err) {}
+  } catch (_err) {
+    return null;
+  }
 
   return steps;
 };
 
-export default async (props, req, ctx) => {
+export default withCache(async (props, req, ctx) => {
   try {
     return await action(props, req, ctx);
   } catch (error) {
     console.error(error);
+    return null;
   }
-};
+});

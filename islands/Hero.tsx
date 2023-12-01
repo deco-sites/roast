@@ -417,7 +417,7 @@ const Roast = (
                 <img
                   width="1280"
                   height="720"
-                  src={dataURI("image/webp", true, img)}
+                  src={`data:image/jpeg;base64,${img}`}
                 />
               </div>
             ))}
