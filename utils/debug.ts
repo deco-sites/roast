@@ -1,6 +1,6 @@
-import openai from "deco-sites/roast/utils/openai.ts";
+import { type OpenAI } from "deco-sites/roast/apps/site.ts";
 
-export const printThread = async (thread: string) => {
+export const printThread = async (thread: string, openai: OpenAI) => {
   const str = [];
 
   let messages = await openai.beta.threads.messages.list(thread);

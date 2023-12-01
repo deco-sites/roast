@@ -1,9 +1,9 @@
-import openai, {
-  AssistantCreateParams,
-  FunctionDefinition,
-} from "deco-sites/roast/utils/openai.ts";
+import { AssistantCreateParams, OpenAI } from "deco-sites/roast/apps/site.ts";
 
-const getOrCreateAssistant = async (params: AssistantCreateParams) => {
+const getOrCreateAssistant = async (
+  params: AssistantCreateParams,
+  openai: OpenAI,
+) => {
   let list = await openai.beta.assistants.list();
 
   while (list.data.length > 0 || list.hasNextPage()) {
@@ -37,5 +37,5 @@ const ASSISTANTS = {
   },
 } satisfies Record<string, AssistantCreateParams>;
 
-export const getAssistant = (name: keyof typeof ASSISTANTS) =>
-  getOrCreateAssistant(ASSISTANTS[name]);
+export const getAssistant = (name: keyof typeof ASSISTANTS, openai: OpenAI) =>
+  getOrCreateAssistant(ASSISTANTS[name], openai);

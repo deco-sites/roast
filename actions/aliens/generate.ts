@@ -1,9 +1,9 @@
 import { type Audience } from "deco-sites/roast/actions/audiences/generate.ts";
+import { type Run } from "deco-sites/roast/apps/site.ts";
 import { getAssistant } from "deco-sites/roast/utils/assistants.ts";
-import openai, { Run } from "deco-sites/roast/utils/openai.ts";
-import { type AppContext } from "../../apps/site.ts";
-import { printThread } from "deco-sites/roast/utils/debug.ts";
 import { withCache } from "deco-sites/roast/utils/cache.ts";
+import { printThread } from "deco-sites/roast/utils/debug.ts";
+import { type AppContext } from "../../apps/site.ts";
 
 interface Props {
   audience: Audience;
@@ -34,8 +34,9 @@ const formatAudience = (a: Audience) =>
 const action = async (
   props: Props,
   _req: Request,
-  __ctx: AppContext,
+  ctx: AppContext,
 ): Promise<Being[] | null> => {
+  const { openai } = ctx;
   const { audience, thread: threadId } = props;
 
   const assistant = await getAssistant("Roast my Commerce - Audience expert");
