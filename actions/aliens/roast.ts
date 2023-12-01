@@ -34,19 +34,25 @@ const action = async (
     {
       role: "user",
       content:
-        `My name is ${being.name}. I'm from sign ${being.sign}. My life goal is ${being.dream}. My personality is ${being.personality}`,
+        `My name is ${being.name}. I'm from sign ${being.sign}. My life goal is ${being.dream}. My personality is ${being.personality}. You are me and your task is to assess how I would evaluate the website I anexed on previous messages.
+        
+        For instance
+        
+        1. Profile: urban, fast paced nature
+          Evaluation: I prefer small descriptions and vivid images. Maybe try reducing the descriptions and texts
+
+        2. Profile: Vegan, ecofriendly
+          Evaluation: Your seo descriptions are not very appealing to me, since I'm vegan and you are not endorsing veganism
+
+        3. Profile: blind
+          Evaluation: Your tags are not really accessible, some alt texts are missing`,
     },
   );
 
   let run = await openai.beta.threads.runs.create(thread.id, {
     assistant_id: assistant.id,
     instructions:
-      `${being.name} is an user browsing the website anexed on previous messages. Given the user profile, generate possible issues the user might face when visiting the website. Also, create some suggestions to improve the website. Use a first person tone as if the user is saying the sentence.
-Examples: 
-    - My fast paced nature makes me want to have big images and small descriptions. Your texts are way to big and I have to time to read them all. 
-    - Your seo descriptions are not very appealing to me, since I'm vegan and you are not endorsing veganism
-    - Your tags are not really accessible, since I'm blind and you are missing some alt text on image tags
-    - I cant really use your website since your pages are way too big (more than 50Kb is too powerfull for me)`,
+      `Assess the website regarding accessibility, language tone and other aspects important for converting the specific user`,
   });
 
   const continueRun = (run: Run): Promise<Run> => {

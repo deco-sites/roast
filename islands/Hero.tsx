@@ -368,7 +368,7 @@ const Roast = (
           }
         }}
       >
-        {loading.value ? <span class="loading loading-spinner" /> : "Roast!"}
+        {loading.value ? <span class="loading loading-spinner" /> : "Dissect my site"}
       </button>
     );
   }
@@ -384,7 +384,7 @@ const Roast = (
             Summary
           </span>
           <div
-            class="font-normal text-base overflow-y-auto max-h-[30vh]"
+            class="font-normal text-base overflow-y-auto max-h-[30vh] whitespace-pre-line"
             dangerouslySetInnerHTML={{ __html: roast.value }}
           />
         </div>
@@ -394,7 +394,7 @@ const Roast = (
       <div class="modal" role="dialog">
         <div class="modal-box max-w-fit">
           <h3 class="font-bold text-lg">Summary</h3>
-          <div class="py-4" dangerouslySetInnerHTML={{ __html: roast.value }} />
+          <div class="py-4 whitespace-pre-line" dangerouslySetInnerHTML={{ __html: roast.value }} />
           <div class="modal-action">
             <label for="summary-modal" class="btn">Close</label>
           </div>
