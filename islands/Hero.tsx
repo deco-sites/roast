@@ -1,10 +1,11 @@
 import { asset } from "$fresh/runtime.ts";
-import { useSignal, type Signal } from "@preact/signals";
+import { type Signal, useSignal } from "@preact/signals";
 import { type HTMLWidget, type ImageWidget } from "apps/admin/widgets.ts";
 import { type Being } from "deco-sites/roast/actions/aliens/generate.ts";
 import { type Audience } from "deco-sites/roast/actions/audiences/generate.ts";
 import { invoke } from "deco-sites/roast/runtime.ts";
 import { clx } from "deco-sites/roast/utils/clx.ts";
+import { sleep } from "https://esm.sh/v133/@supabase/gotrue-js@2.55.0/dist/module/lib/helpers.js";
 import { type ComponentChildren } from "preact";
 import { useEffect } from "preact/hooks";
 
@@ -95,11 +96,15 @@ const Form = (props: Props & Signals) => {
             audiences.value = null;
             step.value = "audience-loading";
 
+            const minAwait = sleep(5e3);
+
             const result = await invoke["deco-sites/roast"].actions
               .audiences
               .generate({
                 url: url.value,
               });
+
+            await minAwait;
 
             if (result == null) {
               window.alert("Something went wrong");
@@ -135,7 +140,7 @@ const Loading = (props: Props & { sentence: string }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       message.value = pickRandom(messages);
-    }, 1e3);
+    }, 5e3);
 
     return () => {
       clearInterval(interval);
@@ -145,7 +150,7 @@ const Loading = (props: Props & { sentence: string }) => {
   return (
     <Layout {...props}>
       <div class="py-6 flex items-center gap-4">
-        <span>{message.value}</span>
+        <span class="animate-pulse">{message.value}</span>
         <span class="loading loading-ring loading-lg" />
       </div>
     </Layout>
@@ -191,6 +196,8 @@ const Audiences = (props: Props & Signals) => {
 
                 loading.value = true;
 
+                const minAwait = sleep(5e3);
+
                 const response = await invoke["deco-sites/roast"]
                   .actions
                   .aliens.generate({
@@ -199,6 +206,8 @@ const Audiences = (props: Props & Signals) => {
                       audience.value || 0,
                     ),
                   });
+
+                await minAwait;
 
                 beings.value = response;
                 step.value = "beings";

@@ -71,24 +71,58 @@ const action = async (
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "Full name, example: Quasara",
+                    "description": "Full name",
+                    "examples": [
+                      "tavano",
+                      "mcandeia",
+                      "teos",
+                      "gui",
+                      "gimenes",
+                      "vini",
+                      "victor",
+                      "muri",
+                      "cica",
+                      "ana",
+                      "baby",
+                      "leandro",
+                      "lucas",
+                      "brasileiro",
+                    ],
                   },
                   "age": {
                     "type": "number",
                     "description": "Age of the individual",
+                    "examples": [25, 26, 20, 50],
                   },
                   "personality": {
                     "type": "string",
                     "description": "Personality traits of the person",
+                    "examples": [
+                      "Extroverted, likes going to the beach on weekends",
+                      "Prefers spoon to fork",
+                    ],
                   },
                   "sign": {
                     "type": "string",
-                    "description": "Zodiac sign: example virgo",
+                    "description": "Zodiac sign",
+                    "examples": ["virgo", "gemini"],
                   },
                   "dream": {
                     "type": "string",
-                    "description":
-                      "The persons life dream, e.g. Dreams about building a spaceship for enjoying the out of this world taste of space cow's milk",
+                    "description": "The persons life dream",
+                    "examples": [
+                      "Dreams about building a spaceship for enjoying the out of this world taste of space cow's milk",
+                      "Acquire a stylish and trendy Earthly purse to enhance alien fashion.",
+                      "Explore Earth's markets for the finest intergalactic cow milk, a rare and coveted delicacy.",
+                      "Secure the latest Earth technology gadgets to upgrade alien living spaces.",
+                      "Master the art of Earthly cuisine by collecting unique and exotic ingredients.",
+                      "Find the perfect human disguise to navigate Earth's shopping season incognito.",
+                      "Invest in a top-of-the-line interstellar navigation system for seamless cosmic travel.",
+                      "Discover the best Earthly entertainment systems to enjoy during downtime between invasions.",
+                      "Build a diverse collection of Earthly art and cultural artifacts for alien appreciation.",
+                      "Create a fashionable wardrobe of Earth designer clothing to showcase alien elegance.",
+                      "Assemble a unique assortment of Earthly souvenirs to commemorate the invasion and shopping adventure.",
+                    ],
                   },
                   "city": {
                     "type": "string",
@@ -102,6 +136,13 @@ const action = async (
                     "type": "string",
                     "description":
                       "Target product they'd like to buy and a storyline of why they are looking for this specific product",
+                    "examples": [
+                      "shoes",
+                      "cardigan",
+                      "jacket",
+                      "skirt",
+                      "dress",
+                    ],
                   },
                 },
                 "required": [

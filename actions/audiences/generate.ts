@@ -110,6 +110,11 @@ const action = async (
                     "name": {
                       "type": "string",
                       "description": "Title of a possible website audience",
+                      "examples": [
+                        "Fashion-forward Professionals",
+                        "Trendy Young Adults",
+                        "Eco-Conscious Consumers",
+                      ],
                     },
                     "age-range": {
                       "type": "string",
@@ -119,15 +124,31 @@ const action = async (
                     "interests": {
                       "type": "string",
                       "description": "What the audience likes to do",
+                      "examples": [
+                        "Fashion, Sustainability",
+                        "Sustainability, Technology",
+                        "Trendy clothing, Music, Social media",
+                        "Environmental sustainability, Eco-friendly products, Organic living",
+                      ],
                     },
                     "shopping-preferences": {
                       "type": "string",
                       "description": "The audience shopping preferences",
+                      "examples": [
+                        "Designer clothing, Eco-friendly accessories, Innovative gadgets",
+                        "Trendy outfits, Affordable accessories, Popular music-related merchandise",
+                      ],
                     },
                     "potential-products": {
                       "type": "string",
                       "description":
                         "Which products this audience likely will buy",
+                      "examples": [
+                        "shoes, dresses, shirts",
+                        "hats",
+                        "glasses",
+                        "gadgets"
+                      ]
                     },
                   },
                   "required": [
