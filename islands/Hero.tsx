@@ -512,7 +512,7 @@ type StateMachine =
 
 export default function Island(props: Props) {
   const signals = {
-    step: useSignal<StateMachine>("error"),
+    step: useSignal<StateMachine>("greetings"),
     loading: useSignal(false),
     audience: useSignal<number | null>(null),
     audiences: useSignal<Audience[] | null>(null),
