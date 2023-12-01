@@ -2,6 +2,7 @@ import OpenAI from "https://deno.land/x/openai@v4.20.1/mod.ts";
 import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { AppContext } from "../apps/site.ts";
 import { join } from "std/path/mod.ts";
+import { get_tabbable_elements, get_page_content } from "./traverse.ts";
 
 interface Props {
   url: string;
@@ -15,7 +16,7 @@ const browser = await puppeteer.launch({
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const ID_KEY = "id";
+const ID_KEY = "pgpt-id";
 
 const definitions = [
   {
@@ -119,12 +120,17 @@ const getAssistant = async () => {
       { type: "retrieval" },
     ],
 
-    model: "gpt-4-1106-preview",
+    model: "gpt-4",
   });
 };
 
 const newTab = async (url: string) => {
   const page = await browser.newPage();
+  await page.setViewport( {
+    width: 1200,
+    height: 1200,
+    deviceScaleFactor: 1,
+} );
 
   await page.goto(url, { waitUntil: "networkidle0" });
 
@@ -193,6 +199,9 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   const data = await page.evaluate(
     () => document.body.innerHTML,
   );
+  await get_tabbable_elements(page);
+  const content = await get_page_content(page)
+  console.log(content)
 
   const { html: linksSanitizeds, map: mappedLinks } = await page.evaluate(
     sanitizeLinks,
@@ -219,7 +228,7 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
     role: "user",
     content:
       //        `The file anexed is the html of the website accesible at ${url}.`,
-      `Task: Buy this t-shirt in this page`,
+      `Task: buy this t-shirt in the current page`,
   });
 
   let run = await openai.beta.threads.runs.create(thread.id, {
@@ -230,10 +239,8 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
      
      ## NOTES ##
      If you find any errors while navigating the website, please report the error with the report_error function.
-     
-     ## START OF PAGE CONTENT ##
-     <body>${linksSanitizeds}</body>
-     ## END OF PAGE CONTENT ##`,
+    
+     ${content}`
   });
 
   while (run.status === "in_progress" || run.status === "queued") {
@@ -251,7 +258,7 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
       .function.arguments;
     const clickLinkProps = JSON.parse(action ?? "");
     const puppyAction =
-      `document.getElementById("${clickLinkProps.id}").click()`;
+      `document.querySelector('[pgpt-id="${clickLinkProps["pgpt-id"]}"]').click()`;
     console.log(
       "action",
       puppyAction,
