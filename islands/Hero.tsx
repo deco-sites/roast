@@ -307,7 +307,12 @@ const Beings = (props: Props & Signals) => {
               <div class="card-body flex-row gap-4">
                 <div class="avatar">
                   <div class="w-24 rounded">
-                    <Image src={avatars[index % avatars.length]} alt="Avatar" />
+                    <Image
+                      src={avatars[index % avatars.length]}
+                      alt="Avatar"
+                      width={196}
+                      height={236}
+                    />
                   </div>
                 </div>
 
@@ -457,26 +462,40 @@ const Summary = (props: Props & Signals) => {
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <TextWithLabel
-              label="Name"
-              text={b?.name ?? "Quasara"}
-            />
-            <TextWithLabel
-              label="Age"
-              text={b?.age.toString() ?? "27"}
-            />
-            <TextWithLabel
-              label="Zodiac Sign"
-              text={b?.sign ?? "virgo"}
-            />
-            <TextWithLabel
-              label="Personality"
-              text={b?.personality ?? "Extroverted"}
-            />
+            {b?.name && (
+              <TextWithLabel
+                label="Name"
+                text={b.name}
+              />
+            )}
+            {b?.age && (
+              <TextWithLabel
+                label="Age"
+                text={b.age.toString()}
+              />
+            )}
             <TextWithLabel
               label="From"
               text={`${b?.city ?? "Campinas"}, ${b?.planet ?? "Kepler 2394"}`}
             />
+            {b?.sign && (
+              <TextWithLabel
+                label="Zodiac Sign"
+                text={b.sign}
+              />
+            )}
+            {b?.personality && (
+              <TextWithLabel
+                label="Personality"
+                text={b.personality}
+              />
+            )}
+            {b?.dream && (
+              <TextWithLabel
+                label="Life goals"
+                text={b.dream}
+              />
+            )}
           </div>
         </div>
 
