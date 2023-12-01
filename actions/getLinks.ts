@@ -127,8 +127,8 @@ const getAssistant = async () => {
 const newTab = async (url: string) => {
   const page = await browser.newPage();
   await page.setViewport({
-    width: 1200,
-    height: 1200,
+    width: 1280,
+    height: 720,
     deviceScaleFactor: 1,
   });
 
@@ -230,7 +230,10 @@ const execute = async (page, task, maxDepth) => {
      You have been tasked with navigating an ecommerce website based on a task given by the user. You are connected to a web browser which you can control via function calls to navigate to pages and list elements on the page. You can also type into search boxes and other input fields and send forms. You can also click links on the page. You will behave as a human browsing the web.
      
      ## NOTES ##
-     If you find any errors while navigating the website, please report the error with the report_error function.
+     If you find any errors while navigating the website, please report the error with the report_error function. Commerce website has three kind of pages:
+     1. landing pages that contains product lists, info about the brand, search bar to search products;
+     2. product listing pages contains products based on a specific query;
+     3. product description pages that contains a product description, images about the product and a button to add the product, present in the page, into the cart.
      
      ${content}`,
   });
@@ -283,7 +286,8 @@ const action = async (props: Props, _req: Request, __ctx: AppContext) => {
   console.log("retrieving web page for", props.url);
   const page = await newTab(props.url);
 
-  const task = "Navigate to a tshirt product page then add it to the cart";
+  const task =
+    "Navigate to a tshirt product page then click to add the product into the cart";
   const maxDepth = 5;
   await execute(page, task, maxDepth);
 };
