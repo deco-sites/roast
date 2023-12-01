@@ -476,6 +476,30 @@ const Summary = (props: Props & Signals) => {
   );
 };
 
+const Error = (
+  props: Props & Signals,
+) => {
+  const { step } = props;
+
+  return (
+    <Layout {...props}>
+      <div class="my-6 flex justify-center">
+        <img src={asset("/sww.png")} />
+      </div>
+      <div class="my-6">
+        Oh no! We had an issue while gathering our alien fleet. Don't worry, you
+        can try contacting then again
+      </div>
+      <button
+        class="btn btn-primary btn-wide"
+        onClick={() => step.value = "greetings"}
+      >
+        Restart contact
+      </button>
+    </Layout>
+  );
+};
+
 type StateMachine =
   | "greetings"
   | "form"
@@ -483,11 +507,12 @@ type StateMachine =
   | "audience"
   | "beings-loading"
   | "beings"
-  | "summary";
+  | "summary"
+  | "error";
 
 export default function Island(props: Props) {
   const signals = {
-    step: useSignal<StateMachine>("greetings"),
+    step: useSignal<StateMachine>("error"),
     loading: useSignal(false),
     audience: useSignal<number | null>(null),
     audiences: useSignal<Audience[] | null>(null),
@@ -514,5 +539,7 @@ export default function Island(props: Props) {
       return <Beings {...props} {...signals} />;
     case "summary":
       return <Summary {...props} {...signals} />;
+    case "error":
+      return <Error {...props} {...signals} />;
   }
 }
