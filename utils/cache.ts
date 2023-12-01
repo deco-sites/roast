@@ -6,7 +6,9 @@ type Handler<TProps, TContext, TReturn> = (
 
 const CACHE_NAME = "deco-aliens";
 
-const cache = await caches.open(CACHE_NAME);
+const cache = typeof caches !== "undefined"
+  ? await caches.open?.(CACHE_NAME)
+  : undefined;
 
 export const withCache = <TProps, TContext, TReturn>(
   handler: Handler<TProps, TContext, TReturn>,
@@ -16,7 +18,7 @@ async (props: TProps, req: Request, ctx: TContext): Promise<TReturn | null> => {
     const url = new URL(req.url);
     url.searchParams.set("props", JSON.stringify(props));
 
-    const cached = await cache.match(url);
+    const cached = await cache?.match(url);
 
     if (cached) {
       return cached.json();
@@ -25,7 +27,7 @@ async (props: TProps, req: Request, ctx: TContext): Promise<TReturn | null> => {
     const response = await handler(props, req, ctx);
 
     if (response) {
-      cache.put(url, new Response(JSON.stringify(response)));
+      cache?.put(url, new Response(JSON.stringify(response)));
     }
 
     return response;

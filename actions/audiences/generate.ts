@@ -25,16 +25,6 @@ export interface Audience {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const canonalize = (url: string) => {
-  const u = new URL(url);
-
-  const pathname = u.pathname.endsWith(".html")
-    ? u.pathname
-    : join(u.pathname, "index.html");
-
-  return new URL(`${pathname}${u.search}`, u.origin).href;
-};
-
 export interface AudienceResponse {
   audiences: Audience[];
   thread: string;
@@ -52,14 +42,12 @@ const action = async (
   _req: Request,
   __ctx: AppContext,
 ): Promise<AudienceResponse | null> => {
-  const url = canonalize(props.url);
+  const { url } = props;
 
-  console.log("retrieving web page for", url);
   const page = await openPage(url);
   const data = await page.evaluate(() =>
     document.querySelector("body")?.innerHTML
   );
-  console.log("done");
 
   if (!data) {
     throw new Error("Missing page data");
