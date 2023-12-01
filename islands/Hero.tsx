@@ -6,13 +6,14 @@ import { type Audience } from "deco-sites/roast/actions/audiences/generate.ts";
 import { invoke } from "deco-sites/roast/runtime.ts";
 import { clx } from "deco-sites/roast/utils/clx.ts";
 import { type ComponentChildren } from "preact";
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
+import Image from "apps/website/components/Image.tsx";
 
 const MIN_LOADING_AWAIT_MS = 0e3;
 const MIN_DISPLAY_MESSAGE_MS = 5e3;
 
 export interface Props {
-  bg: ImageWidget;
+  bg: ImageWidget[];
   logo: ImageWidget;
   text: HTMLWidget;
   cta: string;
@@ -21,6 +22,8 @@ export interface Props {
    * @description Messages that will show up when loading
    */
   messages: string[];
+  error: ImageWidget;
+  avatars: ImageWidget[];
 }
 
 interface Signals {
@@ -39,10 +42,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const Layout = (
   { bg, logo, children }: Props & { children: ComponentChildren },
 ) => {
+  const [url] = useState(pickRandom(bg));
+
   return (
     <div
       class="hero min-h-screen bg-base-100"
-      style={{ backgroundImage: `url("${asset(bg)}")` }}
+      style={{ backgroundImage: `url("${url}")` }}
     >
       <div class="hero-content text-center">
         <div class="bg-[rgba(13,23,23,0.80)] px-28 py-24 rounded">
@@ -102,21 +107,23 @@ const Form = (props: Props & Signals) => {
 
             const minAwait = sleep(MIN_LOADING_AWAIT_MS);
 
-            const result = await invoke["deco-sites/roast"].actions
+            const response = await invoke["deco-sites/roast"].actions
               .audiences
               .generate({
                 url: url.value,
               });
 
-            await minAwait;
-
-            if (result == null) {
-              window.alert("Something went wrong");
+            if (!response) {
+              throw new Error("Missing data");
             }
 
-            audiences.value = result?.audiences ?? null;
-            thread.value = result?.thread ?? null;
+            await minAwait;
+
+            audiences.value = response?.audiences ?? null;
+            thread.value = response?.thread ?? null;
             step.value = "audience";
+          } catch (error) {
+            step.value = "error";
           } finally {
             loading.value = false;
           }
@@ -211,10 +218,16 @@ const Audiences = (props: Props & Signals) => {
                     ),
                   });
 
+                if (!response) {
+                  throw new Error("Missing data");
+                }
+
                 await minAwait;
 
                 beings.value = response;
                 step.value = "beings";
+              } catch (error) {
+                step.value = "error";
               } finally {
                 loading.value = false;
               }
@@ -251,12 +264,13 @@ const Audiences = (props: Props & Signals) => {
 };
 
 const Beings = (props: Props & Signals) => {
-  const { bg, url, logo, audiences, audience, beings, being, step } = props;
+  const { bg, url, logo, audiences, audience, beings, being, step, avatars } =
+    props;
 
   return (
     <div
       class="min-h-screen bg-base-100 grid grid-cols-1 sm:grid-cols-[70%,30%] justify-center"
-      style={{ backgroundImage: `url("${asset(bg)}")` }}
+      style={{ backgroundImage: `url("${pickRandom(bg)}")` }}
     >
       {url.value && (
         <div class="p-8 w-full self-center">
@@ -293,10 +307,7 @@ const Beings = (props: Props & Signals) => {
               <div class="card-body flex-row gap-4">
                 <div class="avatar">
                   <div class="w-24 rounded">
-                    <img
-                      src={asset(`/avatars/avatar${index % 10}.jpeg`)}
-                      alt="Avatar"
-                    />
+                    <Image src={avatars[index % avatars.length]} alt="Avatar" />
                   </div>
                 </div>
 
@@ -318,7 +329,7 @@ const Beings = (props: Props & Signals) => {
 };
 
 const Roast = (
-  { being, loading, thread }: Props & Omit<Signals, "being"> & {
+  { being, loading, thread, step }: Props & Omit<Signals, "being"> & {
     being: Being | undefined;
   },
 ) => {
@@ -335,10 +346,18 @@ const Roast = (
 
             const minAwait = sleep(MIN_LOADING_AWAIT_MS);
 
-            roast.value = await invoke["deco-sites/roast"].actions.aliens
+            const response = await invoke["deco-sites/roast"].actions.aliens
               .roast({ being, thread: thread.value ?? undefined });
 
+            if (!response) {
+              throw new Error("Missing data");
+            }
+
             await minAwait;
+
+            roast.value = response;
+          } catch (error) {
+            step.value = "error";
           } finally {
             loading.value = false;
           }
@@ -389,7 +408,7 @@ const Summary = (props: Props & Signals) => {
   return (
     <div
       class="min-h-screen bg-base-100 grid grid-cols-1 sm:grid-cols-[70%,30%] justify-center"
-      style={{ backgroundImage: `url("${asset(bg)}")` }}
+      style={{ backgroundImage: `url("${pickRandom(bg)}")` }}
     >
       {url.value && (
         <div class="p-8 w-full self-center">
@@ -476,29 +495,31 @@ const Summary = (props: Props & Signals) => {
   );
 };
 
-const Error = (
+const ErrorView = (
   props: Props & Signals,
-) => {
-  const { step } = props;
-
-  return (
-    <Layout {...props}>
-      <div class="my-6 flex justify-center">
-        <img src={asset("/sww.png")} />
-      </div>
-      <div class="my-6">
-        Oh no! We had an issue while gathering our alien fleet. Don't worry, you
-        can try contacting then again
-      </div>
-      <button
-        class="btn btn-primary btn-wide"
-        onClick={() => step.value = "greetings"}
-      >
-        Restart contact
-      </button>
-    </Layout>
-  );
-};
+) => (
+  <Layout {...props} bg={[props.error]}>
+    <div class="my-6">
+      Oh no! We had an issue while gathering our alien fleet. Don't worry, you
+      can try contacting then again
+    </div>
+    <button
+      class="btn btn-secondary btn-wide"
+      onClick={() => {
+        props.step.value = "greetings";
+        props.loading.value = false;
+        props.audience.value = null;
+        props.audiences.value = null;
+        props.being.value = null;
+        props.beings.value = null;
+        props.thread.value = null;
+        props.url.value = null;
+      }}
+    >
+      Restart contact
+    </button>
+  </Layout>
+);
 
 type StateMachine =
   | "greetings"
@@ -540,6 +561,6 @@ export default function Island(props: Props) {
     case "summary":
       return <Summary {...props} {...signals} />;
     case "error":
-      return <Error {...props} {...signals} />;
+      return <ErrorView {...props} {...signals} />;
   }
 }

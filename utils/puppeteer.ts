@@ -18,7 +18,7 @@ const getBrowser = () => {
 
     promise.then((browser) => {
       browser.on("disconnected", () => {
-        console.log('disconnected from browserless')
+        console.log("disconnected from browserless");
         promise = null;
       });
     });

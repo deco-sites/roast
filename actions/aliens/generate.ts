@@ -39,7 +39,7 @@ const action = async (
   const { openai } = ctx;
   const { audience, thread: threadId } = props;
 
-  const assistant = await getAssistant("Roast my Commerce - Audience expert");
+  const assistant = await getAssistant("Roast my Commerce - Audience expert", openai);
 
   const thread = threadId
     ? await openai.beta.threads.retrieve(threadId)
