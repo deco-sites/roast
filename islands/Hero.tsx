@@ -1,17 +1,23 @@
 import { asset } from "$fresh/runtime.ts";
-import { type Signal, useSignal } from "@preact/signals";
+import { useSignal, type Signal } from "@preact/signals";
 import { type HTMLWidget, type ImageWidget } from "apps/admin/widgets.ts";
 import { type Being } from "deco-sites/roast/actions/aliens/generate.ts";
 import { type Audience } from "deco-sites/roast/actions/audiences/generate.ts";
 import { invoke } from "deco-sites/roast/runtime.ts";
-import { type ComponentChildren } from "preact";
 import { clx } from "deco-sites/roast/utils/clx.ts";
+import { type ComponentChildren } from "preact";
+import { useEffect } from "preact/hooks";
 
 export interface Props {
   bg: ImageWidget;
   logo: ImageWidget;
   text: HTMLWidget;
   cta: string;
+  /**
+   * @title Loading messages
+   * @description Messages that will show up when loading
+   */
+  messages: string[];
 }
 
 interface Signals {
@@ -119,11 +125,27 @@ const Form = (props: Props & Signals) => {
   );
 };
 
+const pickRandom = <T,>(array: T[]) =>
+  array[Math.floor(Math.random() * array.length)];
+
 const Loading = (props: Props & { sentence: string }) => {
+  const { messages } = props;
+  const message = useSignal(pickRandom(messages));
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      message.value = pickRandom(messages);
+    }, 1e3);
+
+    return () => {
+      clearInterval(interval);
+    };
+  });
+
   return (
     <Layout {...props}>
       <div class="py-6 flex items-center gap-4">
-        <span>{props.sentence}</span>
+        <span>{message.value}</span>
         <span class="loading loading-ring loading-lg" />
       </div>
     </Layout>
