@@ -10,6 +10,8 @@ import * as $$$$$$4 from "./sections/ParagraphList.tsx";
 import * as $$$$$$$$$0 from "./actions/audiences/generate.ts";
 import * as $$$$$$$$$1 from "./actions/aliens/roast.ts";
 import * as $$$$$$$$$2 from "./actions/aliens/generate.ts";
+import * as $$$$$$$$$3 from "./actions/traverse.ts";
+import * as $$$$$$$$$4 from "./actions/getLinks.ts";
 import * as $$$$$$$$$$$0 from "./apps/decohub.ts";
 import * as $$$$$$$$$$$1 from "./apps/site.ts";
 
@@ -25,6 +27,8 @@ const manifest = {
     "deco-sites/roast/actions/aliens/generate.ts": $$$$$$$$$2,
     "deco-sites/roast/actions/aliens/roast.ts": $$$$$$$$$1,
     "deco-sites/roast/actions/audiences/generate.ts": $$$$$$$$$0,
+    "deco-sites/roast/actions/getLinks.ts": $$$$$$$$$4,
+    "deco-sites/roast/actions/traverse.ts": $$$$$$$$$3,
   },
   "apps": {
     "deco-sites/roast/apps/decohub.ts": $$$$$$$$$$$0,
