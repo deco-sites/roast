@@ -20,7 +20,10 @@ const action = async (
   const { openai } = ctx;
   const { being, thread: threadId } = props;
 
-  const assistant = await getAssistant("Roast my Commerce - Audience expert");
+  const assistant = await getAssistant(
+    "Roast my Commerce - Audience expert",
+    openai,
+  );
 
   const thread = threadId
     ? await openai.beta.threads.retrieve(threadId)
@@ -66,7 +69,7 @@ Examples:
     await sleep(1e3);
   }
 
-  await printThread(thread.id);
+  await printThread(thread.id, openai);
 
   const messages = await openai.beta.threads.messages.list(thread.id);
 

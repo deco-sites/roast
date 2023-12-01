@@ -207,7 +207,7 @@ const action = async (
     await sleep(1e3);
   }
 
-  await printThread(thread.id);
+  await printThread(thread.id, openai);
 
   return beings;
 };

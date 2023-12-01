@@ -44,16 +44,21 @@ const action = async (
   const { openai } = ctx;
   const { url } = props;
 
+  console.log("Visiting", url);
   const page = await openPage(url);
   const data = await page.evaluate(() =>
     document.querySelector("body")?.innerHTML
   );
+  console.log("done");
 
   if (!data) {
     throw new Error("Missing page data");
   }
 
-  const assistant = await getAssistant("Roast my Commerce - Audience expert");
+  const assistant = await getAssistant(
+    "Roast my Commerce - Audience expert",
+    openai,
+  );
 
   const thread = await openai.beta.threads.create();
   const html = await openai.files.create({
@@ -217,7 +222,7 @@ const action = async (
     }
   }
 
-  await printThread(thread.id);
+  await printThread(thread.id, openai);
 
   return audiences
     ? {
