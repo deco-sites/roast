@@ -13,6 +13,7 @@ type WebsiteApp = ReturnType<typeof website>;
 
 interface Props extends WebsiteProps {
   openai: SecretString;
+  browserless: SecretString;
 }
 
 export default function Site(

@@ -41,11 +41,11 @@ const action = async (
   _req: Request,
   ctx: AppContext,
 ): Promise<AudienceResponse | null> => {
-  const { openai } = ctx;
+  const { openai, browserless } = ctx;
   const { url } = props;
 
   console.log("Visiting", url);
-  const page = await openPage(url);
+  const page = await openPage(url, browserless);
   const data = await page.evaluate(() =>
     document.querySelector("body")?.innerHTML
   );

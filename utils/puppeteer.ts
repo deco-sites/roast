@@ -5,15 +5,14 @@ import puppeteer, {
 
 let promise: Promise<Browser> | null = null;
 
-const useBrowserless = true || context.isDeploy;
+const useBrowserless = context.isDeploy;
 
-const getBrowser = () => {
+const getBrowser = (token: string | null) => {
   if (!promise) {
     promise = !useBrowserless
       ? puppeteer.launch({ args: ["--no-sandbox"] })
       : puppeteer.connect({
-        browserWSEndpoint:
-          "wss://chrome.browserless.io?token=1d72d5a3-f93c-4329-abbd-c04cb1f49287",
+        browserWSEndpoint: `wss://chrome.browserless.io?token=${token}`,
       });
 
     promise.then((browser) => {
@@ -27,8 +26,8 @@ const getBrowser = () => {
   return promise;
 };
 
-export const openPage = async (url: string) => {
-  const browser = await getBrowser();
+export const openPage = async (url: string, token: string | null) => {
+  const browser = await getBrowser(token);
   const page = await browser.newPage();
 
   await page.goto(url, { waitUntil: "networkidle0" });
